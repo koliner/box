@@ -66,23 +66,4 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
-# data = get_qr_data()
-# token = data['key']
-# make_qrcode(data)
-# #url2 = f'https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key={token}&source=main_web'
-# url2 = f'https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key={token}&source=main-fe-header'
-# client = requests.get(url2, headers=header)
-# get = client.json()
-# code_status = get['data']['code']
-# message = get['data']['message']
-# #print(client)
-# # print(f'{code_status}&{message}')
-# while True:
-#     client = requests.get(url2, headers=header)
-#     get = client.json()
-#     code_status = get['data']['code']
-#     message = get['data']['message']
-#     print(f'{code_status}&{message}')
-#     if code_status == 0:
-#         break
+    run_main()
