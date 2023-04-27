@@ -1,7 +1,11 @@
 import json
+import threading
+import time
 
 import qrcode
 import requests
+import tkinter as tk
+from PIL import ImageTk, Image
 
 url1 = "https://passport.bilibili.com/x/passport-login/web/qrcode/generate?source=main_web"
 header = {
@@ -17,22 +21,55 @@ def get_qr_data():
     qrcode_url = resulting['data']["url"]
     qrcode_key = resulting['data']['qrcode_key']
     data = {"code": code, "url": qrcode_url, 'key': qrcode_key}
-    # print(data)
     return data
 
 
-def make_qrcode(data):
-    qr = qrcode.QRCode(
-        version=5,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(data["url"])
-    qr.make(fit=True)
-    # fill_color和back_color分别控制前景颜色和背景颜色，支持输入RGB色，注意颜色更改可能会导致二维码扫描识别失败
-    img = qr.make_image(fill_color="black")
-    img.show()
+class QRCodeWindow:
+    def __init__(self, data):
+        self.data = data
+        self.root = tk.Tk()
+        self.root.title("QR Code")
+        self.qr_code_image = self.make_qrcode(data)
+        label = tk.Label(self.root, image=self.qr_code_image)
+        label.pack()
+
+    def make_qrcode(self, data):
+        qr = qrcode.QRCode(
+            version=5,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(data["url"])
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black")
+        img = img.convert('RGB')
+        img = ImageTk.PhotoImage(img)
+        return img
+
+    def verify_qr(self):
+        while True:
+            time.sleep(1) # 每秒轮询一次
+            # 检查二维码状态
+            token = self.data['key']
+            requests.session()
+            url = f'https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key={token}&source=main-fe-header'
+            resp = requests.get(url,headers=header)
+            code = resp.json()
+            print(code['data']['code'])
+            if code['data']['code'] == 0:
+                cookie = dict(resp.cookies)
+                save_cookie(cookie)
+                self.root.destroy()
+                break
+
+
+    def run(self):
+        # 启动二维码验证线程
+        t = threading.Thread(target=self.verify_qr)
+        t.daemon = True
+        t.start()
+        self.root.mainloop()
 
 
 def save_cookie(data):
@@ -43,18 +80,10 @@ def save_cookie(data):
 def run_main():
     data = get_qr_data()
     token = data['key']
-    make_qrcode(data)
-    url2 = f'https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key={token}&source=main_web'
-    client = requests.get(url2, headers=header)
-    get = client.json()
-    code_status = get['data']['code']
-    print(get)
-    while True:
-        print(f'{code_status}')
-        if code_status == 0:
-            cookie = dict(client.cookies)
-            save_cookie(cookie)
-            break
+    window = QRCodeWindow(data)
+    window.run()
+    test()
+
 
 
 def test():
